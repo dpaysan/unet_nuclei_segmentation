@@ -16,6 +16,7 @@ License: BSD-3, see LICENSE.md for details
 """
 import os.path
 import numpy as np
+import tifffile
 from skimage import transform
 from tqdm import tqdm
 
@@ -49,13 +50,13 @@ option_dict_bn = { "momentum": 0.9}
 
 
 class UnetSegmenter(object):
-    def __init__(self, weight_file:str=None, min_size:int=0,
-                 max_size:int=1e10, boundary_boost_factor:float=1.0):
+    def __init__(self, weight_file:str=None, close_holes:int=0,
+                 remove_objects:int=1e10, boundary_boost_factor:float=1.0):
         super().__init__()
 
         self.weight_file=weight_file
-        self.min_size=min_size
-        self.max_size=max_size
+        self.close_holes=close_holes
+        self.remove_objects=remove_objects
 
         self.boundary_boost_factor = boundary_boost_factor
 
@@ -138,8 +139,8 @@ class UnetSegmenter(object):
 
     def pred_to_label(self, pred):
         pred = np.argmax(pred * [1,1,self.boundary_boost_factor], -1) == 1
-        pred = remove_small_holes(pred, self.min_size)
-        pred = remove_small_objects(pred, self.max_size)
+        pred = remove_small_holes(pred, self.close_holes)
+        pred = remove_small_objects(pred, self.remove_objects)
         labels = label(pred)
         return labels
 
@@ -225,12 +226,12 @@ class UnetSegmenter(object):
             os.makedirs(output_dir)
         file_list = get_file_list(input_dir)
         for file in tqdm(file_list):
-            image = imread(file)
+            image = tifffile.imread(file)
             pred = self.classify(image, resize_to_model=resize_to_model)
             label = self.pred_to_label(pred)
             file_name = os.path.split(file)[1]
             file_path = os.path.join(output_dir, file_name)
-            imsave(file_path, label)
+            tifffile.imsave(file_path, label)
 
 
 
