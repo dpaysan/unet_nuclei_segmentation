@@ -20,6 +20,7 @@ import tifffile
 from skimage import transform
 from skimage.segmentation import clear_border
 from tqdm import tqdm
+from scipy import ndimage as ndi
 
 from skimage.io import imread, imsave
 from skimage.measure import label
@@ -143,6 +144,7 @@ class UnetSegmenter(object):
         pred = remove_small_holes(pred, self.close_holes)
         pred = remove_small_objects(pred, self.remove_objects)
         pred = clear_border(pred)
+        pred = ndi.binary_fill_holes(pred)
         labels = label(pred)
         return labels
 
